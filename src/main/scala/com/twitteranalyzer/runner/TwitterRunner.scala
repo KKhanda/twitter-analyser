@@ -1,5 +1,6 @@
 package com.twitteranalyzer.runner
 
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.streaming._
 import org.apache.spark.streaming.twitter.TwitterUtils
@@ -13,14 +14,16 @@ object TwitterRunner extends App {
 
   val sparkConf = new SparkConf().setAppName("runner").setMaster("local[2]")
   val streamingContext: StreamingContext = new StreamingContext(sparkConf, Milliseconds(15000))
+  val rootLogger = Logger.getRootLogger
+  rootLogger.setLevel(Level.ERROR)
   val stream = TwitterUtils.createStream(streamingContext, None)
 
-  case class Tweet(createdAt: Long, text: String)
+  case class Tweet(createdAt: Long, text: String, lang: String)
   val twits = stream.window(Seconds(15)).map(m =>
-    Tweet(m.getCreatedAt.getTime / 1000, m.toString)
+    Tweet(m.getCreatedAt.getTime / 1000, m.toString, m.getLang)
   )
 
-  twits.foreachRDD(rdd => rdd.collect().foreach(println))
+  twits.foreachRDD(rdd => rdd.collect().filter(twit => twit.lang.equals("en")).foreach(println))
 
   streamingContext.start()
   streamingContext.awaitTermination()
