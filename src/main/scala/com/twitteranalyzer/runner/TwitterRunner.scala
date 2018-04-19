@@ -1,9 +1,14 @@
 package com.twitteranalyzer.runner
 
+import com.datastax.spark.connector.SomeColumns
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.streaming._
 import org.apache.spark.streaming.twitter.TwitterUtils
+import com.datastax.spark.connector.streaming._
+import com.twitteranalyzer.CassandraClient
+import twitter4j.Place
+import com.twitteranalyzer.utils.MessageUtils._
 
 object TwitterRunner extends App {
 
@@ -13,17 +18,20 @@ object TwitterRunner extends App {
   System.setProperty("twitter4j.oauth.accessTokenSecret", "WfmpFeVZYaGPPDm1Py7ttM1WV6e6FCdeFghSfDb36buAm")
 
   val sparkConf = new SparkConf().setAppName("runner").setMaster("local[2]")
-  val streamingContext: StreamingContext = new StreamingContext(sparkConf, Milliseconds(15000))
+  val streamingContext: StreamingContext = new StreamingContext(sparkConf, Seconds(5))
   val rootLogger = Logger.getRootLogger
   rootLogger.setLevel(Level.ERROR)
   val stream = TwitterUtils.createStream(streamingContext, None)
+  val cassandraClient = new CassandraClient("localhost")
+  cassandraClient.createSchema()
 
-  case class Tweet(createdAt: Long, text: String, lang: String)
-  val twits = stream.window(Seconds(15)).map(m =>
-    Tweet(m.getCreatedAt.getTime / 1000, m.toString, m.getLang)
-  )
-
-  twits.foreachRDD(rdd => rdd.collect().filter(twit => twit.lang.equals("en")).foreach(println))
+  case class Tweet(id: Long, createdAt: Long, text: String, lang: String, place: Place)
+  stream.map(m => Tweet(m.getId, m.getCreatedAt.getTime / 1000, m.getText, m.getLang, m.getPlace))
+    .filter(twit => twit.lang.equals("en"))
+    .filter(twit => twit.place != null)
+    .filter(twit => twit.place.getCountryCode.equals("US"))
+    .map(twit => Tuple2(cleanUpMessage(twit.text.split(" ")), getHashtags(twit.text.split(" "))))
+    .saveToCassandra("twits", "message", SomeColumns("message", "hashtag"))
 
   streamingContext.start()
   streamingContext.awaitTermination()
