@@ -1,10 +1,10 @@
 package com.twitteranalyzer.utils
 
-class MessageUtils {
+object MessageUtils {
 
   val stopWords = List("a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't", "as", "at",
     "be", "because", "been", "before", "being", "below", "between", "both", "but", "by",
-    "can", "cant", "come", "could", "couldn't",
+    "can", "can't", "come", "could", "couldn't",
     "d", "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down", "during",
     "each",
     "few", "finally", "for", "from", "further",
@@ -23,8 +23,23 @@ class MessageUtils {
     "was", "wasn't", "we", "were", "weren't", "what", "when", "where", "which", "while", "who", "whom", "why", "will", "with", "wont", "would",
     "y", "you", "your", "yours", "yourself", "yourselves")
 
+  val urlPattern = "((https?|http):((//)|(\\\\))+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)"
+  val aliasPattern = "((@)*)"
+  val hashtagPattern = "\\B(\\#[a-zA-Z]+\\b)(?!;)"
+
+
   def cleanUpMessage(message: Array[String]): String = {
-    message.filter(word => stopWords.contains(word)).mkString(" ")
+    message
+      .map(word => word.toLowerCase())
+      .filter(word => !stopWords.contains(word))
+      .map(word => word.replaceAll(urlPattern, ""))
+      .map(word => word.replaceAll(aliasPattern, ""))
+      .map(word => word.replaceAll(hashtagPattern, ""))
+      .mkString(" ")
+  }
+
+  def getHashtags(message: Array[String]): String = {
+    message.filter(word => word matches hashtagPattern).mkString(" ")
   }
 
 }
