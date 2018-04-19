@@ -8,4 +8,6 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-streaming" % "2.0.1",
   "org.apache.bahir" %% "spark-streaming-twitter" % "2.0.1",
   "com.typesafe" % "config" % "1.2.1",
+  "com.datastax.spark" %% "spark-cassandra-connector" % "2.0.5",
+  "org.apache.spark" % "spark-sql_2.11" % "2.0.0"
 )
