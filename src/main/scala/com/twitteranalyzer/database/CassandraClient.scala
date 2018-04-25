@@ -1,4 +1,4 @@
-package com.twitteranalyzer
+package com.twitteranalyzer.database
 
 import com.datastax.driver.core.{Cluster, Session}
 

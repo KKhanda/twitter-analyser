@@ -1,14 +1,15 @@
 package com.twitteranalyzer.runner
 
 import com.datastax.spark.connector.SomeColumns
+import com.twitteranalyzer.database.CassandraClient
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.streaming._
 import org.apache.spark.streaming.twitter.TwitterUtils
 import com.datastax.spark.connector.streaming._
-import com.twitteranalyzer.CassandraClient
-import twitter4j.Place
+import com.twitteranalyzer.models.ClusteringLDA
 import com.twitteranalyzer.utils.MessageUtils._
+import twitter4j.Place
 
 object TwitterRunner extends App {
 
@@ -24,6 +25,7 @@ object TwitterRunner extends App {
   val stream = TwitterUtils.createStream(streamingContext, None)
   val cassandraClient = new CassandraClient("localhost")
   cassandraClient.createSchema()
+  val lda = new ClusteringLDA()
 
   case class Tweet(id: Long, createdAt: Long, text: String, lang: String, place: Place)
   stream.map(m => Tweet(m.getId, m.getCreatedAt.getTime / 1000, m.getText, m.getLang, m.getPlace))
@@ -34,5 +36,21 @@ object TwitterRunner extends App {
     .saveToCassandra("twits", "message", SomeColumns("message", "hashtag"))
 
   streamingContext.start()
-  streamingContext.awaitTermination()
+  streamingContext.awaitTerminationOrTimeout(200000)
+
+  val rdd = streamingContext.cassandraTable("twits", "message").select("message")
+  val rddArray = rdd.map(_.columnValues.toArray.mkString("\n"))
+
+  val (ldaModel, vocabArray) = lda.runClustering(rddArray)
+
+  val topicIndices = ldaModel.describeTopics(maxTermsPerTopic = 5)
+  topicIndices.foreach {
+    case (terms, termWeights) => {
+      println("TOPIC:")
+      terms.zip(termWeights).foreach { case (term, weight) =>
+        println(s"${vocabArray(term.toInt)}\t$weight")
+      }
+      println()
+    }
+  }
 }

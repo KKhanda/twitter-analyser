@@ -27,7 +27,6 @@ object MessageUtils {
   val aliasPattern = "((@)*)"
   val hashtagPattern = "\\B(\\#[a-zA-Z]+\\b)(?!;)"
 
-
   def cleanUpMessage(message: Array[String]): String = {
     message
       .map(word => word.toLowerCase())
