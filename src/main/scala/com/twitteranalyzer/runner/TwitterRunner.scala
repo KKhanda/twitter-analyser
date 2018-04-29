@@ -20,8 +20,6 @@ object TwitterRunner extends App {
 
   val sparkConf = new SparkConf().setAppName("runner").setMaster("local[2]")
   val streamingContext: StreamingContext = new StreamingContext(sparkConf, Seconds(5))
-  val rootLogger = Logger.getRootLogger
-  rootLogger.setLevel(Level.ERROR)
   val stream = TwitterUtils.createStream(streamingContext, None)
   val cassandraClient = new CassandraClient("localhost")
   cassandraClient.createSchema()
