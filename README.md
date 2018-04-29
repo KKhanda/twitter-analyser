@@ -22,5 +22,5 @@ This option could be changed for streamingContext in TwitterRunnner.scala.
 I have provided dump with about 11 thousand twits in repository.
 If you want to use it, you should upload dump into Cassandra. 
 Here is the command, which should be executed from ```cqlsh``` 
-when you are in project folder:
+when you are in project root folder:
 * ```COPY twits.message FROM './data/twits-data.csv' WITH DELIMITER = ',' AND QUOTE = '"' AND NULL = '';```
