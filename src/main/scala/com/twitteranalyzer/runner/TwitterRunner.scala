@@ -36,7 +36,7 @@ object TwitterRunner extends App {
     .saveToCassandra("twits", "message", SomeColumns("message", "hashtag"))
 
   streamingContext.start()
-  streamingContext.awaitTerminationOrTimeout(200000)
+  streamingContext.awaitTerminationOrTimeout(3600000)
 
   val rdd = streamingContext.cassandraTable("twits", "message").select("message")
   val rddArray = rdd.map(_.columnValues.toArray.mkString("\n"))
